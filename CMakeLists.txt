@@ -25,6 +25,7 @@ endif()
 include_directories(
     #"${LIBAV_INCLUDE_PATH}"
     "${OpenCV_INCLUDE_DIRS}"
+        "${YAS_INCLUDE_PATH}"
 )
 
 
