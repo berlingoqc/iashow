@@ -1,0 +1,6 @@
+[submodule "crazygl"]
+	path = crazygl
+	url = https://github.com/berlingoqc/crazygl
+[submodule "imgui"]
+	path = imgui
+	url = https://github.com/berlingoqc/imgui
