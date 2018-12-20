@@ -89,6 +89,8 @@ void end_context()
 ShowContext sc;
 ImageExtractor imageExtractor(&sc);
 
+static int v_skip = 1;
+
 void ContextInfoPanel(bool* display) {
     ImGui::Begin("Show context",display);
     ImGui::TextColored({255,255,0,1},"Serie");
@@ -110,7 +112,8 @@ void ContextInfoPanel(bool* display) {
 }
 
 void ImageExtractorPanel(bool* display) {
-    static int v_skip = 1;
+
+
     ImGui::Begin("ImageExtractor",display);
 
     ImGui::Text("Episode : %s",imageExtractor.current_file.string().c_str());
@@ -119,6 +122,21 @@ void ImageExtractorPanel(bool* display) {
     ImGui::Separator();
 
     ImGui::Text("%d face detecter",imageExtractor.last_faces.size());
+
+    ImGui::Separator();
+
+    for(int i = 0;i<imageExtractor.last_faces.size();i++) {
+        ImGui::Text("%d",i);
+        for(const auto& n : sc.information.list_character) {
+            ImGui::SameLine();
+            ImGui::PushID(i);
+            if(ImGui::Button(n.first.c_str())) {
+                imageExtractor.TagFace(n.first,i);
+            }
+            ImGui::PopID();
+        }
+    }
+
 
     ImGui::Separator();
     if(ImGui::Button("Next")) {
@@ -137,6 +155,7 @@ void ImageExtractorPanel(bool* display) {
     }
 
 
+
     ImGui::End();
 
 }
@@ -149,12 +168,13 @@ int main() {
 
 
     sc.settings.img_format = "png";
-    sc.settings.img_size = cv::Size(200,200);
+    sc.settings.img_size = cv::Size(64,64);
     sc.settings.name_format = "$episode_$char_$frame.$ext";
 
     sc.information.show_name = "the_office";
     sc.information.list_character["jim"] = CharacterInfo(1,"jim",'j');
     sc.information.list_character["dwight"] = CharacterInfo(2,"dwight",'d');
+    sc.information.list_character["micheal"] = CharacterInfo(3,"micheal", 'm');
 
     sc.root_folder = "/home/wq/t1";
     sc.video_source_folder = "/var/share/Media/Show/The Office US/";
@@ -163,11 +183,15 @@ int main() {
 
     imageExtractor.SetCascadeClassifier(face_cascade_name);
 
-    imageExtractor.openEpisode("Season.5/The.Office.S05E01.Weight.Loss.720p.BrRip.Comm.x264-[MULVAcoded].mkv");
+    imageExtractor.openEpisode("Season.5/The.Office.S05E04.Crime.Aid.720p.BrRip.x264-[MULVAcoded].mkv");
 
 
     static bool show_context_panel = true;
     static bool show_extractor_panel = true;
+
+    static int selected_faces = -1;
+
+    static std::vector<char> last_keys;
 
     while (!glfwWindowShouldClose(window))
     {
@@ -184,8 +208,80 @@ int main() {
 
         player.draw();
         ImGuiIO& io = ImGui::GetIO();
-        if(io.KeysDown[GLFW_KEY_0]) {
+
+        if (io.KeysDown[GLFW_KEY_0]) {
+            selected_faces = 0;
         }
+        if (io.KeysDown[GLFW_KEY_1]) {
+            selected_faces = 1;
+        }
+        if (io.KeysDown[GLFW_KEY_2]) {
+            selected_faces = 2;
+        }
+        if (io.KeysDown[GLFW_KEY_3]) {
+
+            selected_faces = 3;
+        }
+        if (io.KeysDown[GLFW_KEY_4])
+        {
+            selected_faces = 4;
+        }
+        if (io.KeysDown[GLFW_KEY_5])
+        {
+            selected_faces = 5;
+        }
+        if (io.KeysDown[GLFW_KEY_6])
+        {
+            selected_faces = 6;
+        }
+        if (io.KeysDown[GLFW_KEY_7])
+        {
+            selected_faces = 7;
+        }
+        if (io.KeysDown[GLFW_KEY_8])
+        {
+            selected_faces = 8;
+        }
+        if (io.KeysDown[GLFW_KEY_9])
+        {
+            selected_faces = 9;
+        }
+
+        if(io.KeysDown[GLFW_KEY_ENTER]) {
+            if(imageExtractor.Next())
+                player.setPixels(imageExtractor.getLastFrame());
+        }
+         if(io.KeysDown[GLFW_KEY_TAB]) {
+            if(imageExtractor.NextFace())
+                player.setPixels(imageExtractor.getLastFrame());
+        }
+         if(io.KeysDown[GLFW_KEY_BACKSPACE]) {
+             if(imageExtractor.Next(v_skip))
+                player.setPixels(imageExtractor.getLastFrame());
+        }
+
+        if (io.KeysDown[GLFW_KEY_M])
+        {
+            if(selected_faces != -1) {
+                imageExtractor.TagFace("micheal",selected_faces);
+                selected_faces = -1;
+            }
+        }
+        if (io.KeysDown[GLFW_KEY_D])
+        {
+            if(selected_faces != -1) {
+                imageExtractor.TagFace("dwight",selected_faces);
+                selected_faces = -1;
+            }
+        }
+        if (io.KeysDown[GLFW_KEY_J])
+        {
+            if(selected_faces != -1) {
+                imageExtractor.TagFace("jim",selected_faces);
+                selected_faces = -1;
+            }
+        }
+
         ImGui::Render();
         int display_w, display_h;
         glfwMakeContextCurrent(window);

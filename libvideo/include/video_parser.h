@@ -47,12 +47,24 @@ struct ShowInformation {
         ar & YAS_OBJECT(nullptr,show_name,list_character);
     }
 };
+template <typename ... Args>
+std::string string_format(const char* format, Args ... args)
+{
+	const size_t size = snprintf(nullptr, 0, format, args ...) + 1;
+	std::unique_ptr<char[]> buf(new char[size]);
+	snprintf(buf.get(), size, format, args ...);
+	return std::string(buf.get(), buf.get() + size - 1);
+}
 
 
 struct DSImageSettings {
     cv::Size    img_size;
     std::string img_format;
     std::string name_format;
+
+    std::string getFileName(std::string episode, std::string name, int frame) {
+        return string_format("%s_%s_%d.%s",episode.c_str(),name.c_str(),frame,img_format.c_str());
+    }
 
     template<typename Ar>
     void serialize(Ar& ar) {
@@ -83,6 +95,11 @@ public:
         save();
     }
 
+    void load(std::string s) {
+        fs::path p = s;
+        load(p);
+    }
+
     void load(const fs::path& configfile) {
         //yas::file_istream ifs(configfile.string().c_str());
         //yas::load<flags_yas_bf>(ifs,information,settings);
@@ -95,6 +112,11 @@ public:
         //yas::save<flags_yas_bf>(of,information,settings);
         //of.flush();
     }
+
+};
+
+// Classe pour iterer sur le dataset crée d'une show context
+class DatasetExplorer {
 
 };
 
@@ -182,10 +204,33 @@ public:
         return true;
     }
 
+
+    void TagFace(std::string name, int index) {
+        if(index > last_faces.size()) {
+            printf("Index invalide\n");
+            return;
+        }
+        fs::path p = show_context->root_folder / name;
+        if(!fs::exists(p)) {
+            if(!fs::create_directory(p)) {
+                printf("Impossible de créer le dossier %s\n",p.string().c_str());
+                return;
+            }
+        }
+        auto fileName = show_context->settings.getFileName(current_file.stem().string(),name,frame_index);
+        printf("Tag face for %s at frame %d filename %s \n",name.c_str(),frame_index,fileName.c_str());
+        p = p / fileName;
+        if(!cv::imwrite(p.string(),last_faces[index])) {
+            printf("Echec\n");
+        }
+    }
+
+    // Retourne les visages trouver dans la derniere frame
     std::vector<cv::Mat>& getFacesFrame() {
         return last_faces;
     }
 
+    // Retourne la derniere frame avec les carres de faces
     cv::Mat& getLastFrame() {
         return last_frame;
     }
@@ -206,7 +251,7 @@ private:
             cv::putText(last_frame,std::to_string(i),center,cv::FONT_HERSHEY_COMPLEX,4,{255,255,255},2,cv::LINE_AA);
             rectangle( last_frame, cv::Point(faces[i].x, faces[i].y), cv::Point(faces[i].x + faces[i].width, faces[i].y + faces[i].height), cv::Scalar(0,0,255),1,8,0);
             cv::Mat faceROI = frame_gray( faces[i] );//std::vector<cv::Rect> eyes;
-            cv::resize(faceROI,faceROI,show_context->settings.img_size);
+            cv::resize(faceROI,faceROI,cv::Size(64,64));
             last_faces.emplace_back(frame(faces[i]));
         }
 
@@ -214,6 +259,12 @@ private:
     }
 
 };
+
+
+
+#include <boost/python.hpp>
+
+using namespace boost::python;
 
 
 
