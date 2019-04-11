@@ -47,6 +47,7 @@ struct ShowInformation {
         ar & YAS_OBJECT(nullptr,show_name,list_character);
     }
 };
+
 template <typename ... Args>
 std::string string_format(const char* format, Args ... args)
 {

@@ -1,23 +1,17 @@
-#include <iostream>
+#include "app.h"
+
+int main() {
+    IashowApp app;
+    app.run();
+    return 0;
+}
 
 
+/*
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/objdetect.hpp>
-
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
-#include "imgui_other.h"
-
-#include "player.h"
-#include "imgui_internal.h"
-
-#include "video_parser.h"
 
 RGBGL_Player			player;
 GLFWwindow*				window;
@@ -299,3 +293,5 @@ int main() {
 
     glfwTerminate();
 }
+
+ */

@@ -65,8 +65,7 @@ link_directories(
 enable_testing()
 
 
-add_subdirectory("crazygl")
-add_subdirectory("imgui")
+add_subdirectory("bsl")
 add_subdirectory("libvideo")
 add_subdirectory("ia")
 add_subdirectory("yaia")
