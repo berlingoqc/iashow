@@ -4,10 +4,10 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <type_traits>
 
 #include <filesystem>
 
-#include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/objdetect.hpp>
@@ -17,133 +17,71 @@
 #include <yas/std_types.hpp>
 #include <yas/file_streams.hpp>
 
+#include "tvshow_info.h"
 
-namespace fs = std::filesystem;
+using namespace lv;
 
-constexpr std::size_t  flags_yas_bf = yas::file | yas::binary;
-
-
-struct CharacterInfo {
-    int             id;
-    std::string     name;
-    char            shortcut;
-
-    CharacterInfo() : id(-1),name(""),shortcut(0) {}
-    CharacterInfo(int i, std::string n,char c) : id(i), name(std::move(n)), shortcut(c) {}
-
-    template<typename Ar>
-    void serialize(Ar& ar) {
-        ar & YAS_OBJECT(nullptr,id,name,shortcut);
-    }
-};
-
-
-struct ShowInformation {
-    std::string                                 show_name;
-    std::map<std::string,CharacterInfo>         list_character;
-
-    template<typename Ar>
-    void serialize(Ar& ar) {
-        ar & YAS_OBJECT(nullptr,show_name,list_character);
-    }
-};
-
-template <typename ... Args>
-std::string string_format(const char* format, Args ... args)
-{
-	const size_t size = snprintf(nullptr, 0, format, args ...) + 1;
-	std::unique_ptr<char[]> buf(new char[size]);
-	snprintf(buf.get(), size, format, args ...);
-	return std::string(buf.get(), buf.get() + size - 1);
-}
-
-
-struct DSImageSettings {
-    cv::Size    img_size;
-    std::string img_format;
-    std::string name_format;
-
-    std::string getFileName(std::string episode, std::string name, int frame) {
-        return string_format("%s_%s_%d.%s",episode.c_str(),name.c_str(),frame,img_format.c_str());
-    }
-
-    template<typename Ar>
-    void serialize(Ar& ar) {
-        ar & YAS_OBJECT(nullptr,img_size,img_format);
-    }
-};
-
-
-class ShowContext {
-public:
-    ShowInformation     information;
-    DSImageSettings     settings;
-
-    fs::path            root_folder;
-
-    fs::path            video_source_folder;
-
-
-
-    void createNew(fs::path dir,std::string showname) {
-        if(!fs::exists(dir) || !fs::is_directory(dir)) {
-            printf("Dossier invalide\n");
-            return;
-        }
-        root_folder = dir;
-        information.show_name = showname;
-
-        save();
-    }
-
-    void load(std::string s) {
-        fs::path p = s;
-        load(p);
-    }
-
-    void load(const fs::path& configfile) {
-        //yas::file_istream ifs(configfile.string().c_str());
-        //yas::load<flags_yas_bf>(ifs,information,settings);
-
-    }
-
-    void save() {
-        //fs::path p = root_folder / information.show_name;
-        //yas::file_ostream of(p.string().c_str(), yas::file_trunc);
-        //yas::save<flags_yas_bf>(of,information,settings);
-        //of.flush();
-    }
-
-};
+const static char*  unknownPrefix = "unknown";
 
 // Classe pour iterer sur le dataset crée d'une show context
 class DatasetExplorer {
 
 };
 
+class VideoTraveler {
+protected:
+    std::string video_file;
+    int current_frame;
 
+public:
+    VideoTraveler() {}
+
+    virtual void openNew(std::string video_file) = 0;
+    virtual void nextFrame() = 0;    irtual void nextFrame(int count);
+    virtual void goToFrame(int count);
+    virtual cv::Mat& getFrame();
+
+    int getAtFrame() {
+        return this->current_frame;
+    }
+
+    const std::string& getVideoFile() {
+        return video_file;
+    }
+
+};
+
+class CVVideoTraveler : public VideoTraveler {
+    cv::Mat                 last_frame;
+    cv::VideoCapture        video_capture;
+
+
+public:
+    void openNew(std::string video_file) override;
+    void nextFrame () override;
+    void nextFrame(int count) override;
+    void goToFrame(int count) override;
+    cv::Mat& getFrame() override;
+};
+
+template<class VT>
 class ImageExtractor {
+    static_assert(std::is_base_of<VideoTraveler,VT>::value,"VT must inherit from VideoTraveler");
 
 public:
 
-    ShowContext*            show_context;
+    ShowContext*                        show_context;
 
-    fs::path                cc_file;
+    std::vector<cv::Mat>                last_faces;
 
-    fs::path                current_file;
+    cv::Mat                             last_frame;
 
-    std::vector<cv::Mat>    last_faces;
+    std::unique_ptr<VideoTraveler>      video_traveler;
 
-    cv::Mat                 last_frame;
+    cv::CascadeClassifier               face_cascade;
 
-    int                     frame_index;
-
-    cv::VideoCapture        video_capture;
-
-    cv::CascadeClassifier   face_cascade;
-
-    ImageExtractor(ShowContext* ctx) : show_context(ctx) , current_file(""), frame_index(-1) {
-
+    ImageExtractor(ShowContext* ctx) : show_context(ctx) {
+        video_traveler = std::make_unique<VT>();
     }
 
     void SetCascadeClassifier(const fs::path& file) {
@@ -152,57 +90,26 @@ public:
         }
     }
 
-    cv::Size getCurrentVideoSize() {
-        return last_frame.size();
-    }
-
     // Ouvre un nouvelle episode pour fetch les données
     void openEpisode(fs::path episode) {
-        current_file = episode;
-        episode = show_context->video_source_folder / episode;
-        video_capture = cv::VideoCapture(episode.string().c_str());
-        frame_index = -1;
         last_faces.clear();
-        if(!video_capture.isOpened()) {
-            printf("Impossible ouvrir video\n");
-            current_file = "";
-            return;
-        }
-        Next();
-    }
-
-
-    bool Next() {
-        if(video_capture.isOpened()) {
-            cv::Mat m;
-            bool b = video_capture.read(m);
-            if(!b) return false;
-            if(m.empty()) return false;
-            // Tout est chill ici
-            frame_index++;
-            last_faces.clear();
-            detectFacesImg(m);
-
-            return true;
-        }
-        return false;
-    }
-
-    bool Next(int frame_skip) {
-        for(int i = 0;i<frame_skip-1;i++) {
-            video_capture.read(last_frame);
-            frame_index++;
-        }
-        return Next();
+        video_traveler->openNew(episode.string());
     }
 
     bool NextFace() {
         last_faces.clear();
         while(last_faces.size() < 1) {
-            if(!Next())
-                return false;
+            video_traveler->nextFrame();
+            detectFacesImg(video_traveler->getFrame());
         }
         return true;
+    }
+
+
+    void TagAllFace() {
+        for(int i = 0;i<last_faces.size();i++) {
+            TagFace(unknownPrefix,i);
+        }
     }
 
 
@@ -211,15 +118,15 @@ public:
             printf("Index invalide\n");
             return;
         }
-        fs::path p = show_context->root_folder / name;
+        fs::path p = fs::path(show_context->root_folder) / name;
         if(!fs::exists(p)) {
             if(!fs::create_directory(p)) {
                 printf("Impossible de créer le dossier %s\n",p.string().c_str());
                 return;
             }
         }
-        auto fileName = show_context->settings.getFileName(current_file.stem().string(),name,frame_index);
-        printf("Tag face for %s at frame %d filename %s \n",name.c_str(),frame_index,fileName.c_str());
+        auto fileName = show_context->settings.getFileName(fs::path(video_traveler->getVideoFile()).stem().string(),name,video_traveler->getAtFrame());
+        printf("Tag face for %s at frame %d filename %s \n",name.c_str(),video_traveler->getAtFrame(),fileName.c_str());
         p = p / fileName;
         if(!cv::imwrite(p.string(),last_faces[index])) {
             printf("Echec\n");
@@ -233,7 +140,7 @@ public:
 
     // Retourne la derniere frame avec les carres de faces
     cv::Mat& getLastFrame() {
-        return last_frame;
+        return this->video_traveler->getFrame();
     }
 
 private:
@@ -255,11 +162,12 @@ private:
             cv::resize(faceROI,faceROI,cv::Size(64,64));
             last_faces.emplace_back(frame(faces[i]));
         }
-
-        printf("Frame %d : %d item detecter\n",frame_index,last_faces.size());
+        printf("Frame %d : %d item detecter\n",video_traveler->getAtFrame(),last_faces.size());
     }
-
 };
+
+
+
 
 
 

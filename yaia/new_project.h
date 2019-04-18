@@ -15,11 +15,10 @@
 void FormShowInformation(ShowInformation* showInfo) {
     ImGui::TextColored({255,255,0,1}, "Show information ");
     ImGui::Separator();
-    ImGui::InputText("Show name ",showInfo->show_name);
+    ImGui::InputText("Show name ",showInfo->show_name,400);
 }
 
 class NewProjectWindow : public bsl::ui::AbstractWindow {
-
 
     fs::path folder;
     std::string name;
@@ -43,10 +42,7 @@ public:
         ImGui::Text(("Name   "+name).c_str());
         ImGui::Separator();
 
-
-
         ImGui::End();
-
     }
 };
 

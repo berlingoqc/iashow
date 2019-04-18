@@ -13,6 +13,8 @@ set( LIBAV_LIBS avcodec avutil avformat swscale)
 
 set( YAS_INCLUDE_PATH "" CACHE PATH "The path containing yas/serialize.hpp")
 
+set (JSON_INCLUDE_PATH "" CACHE PATH "The path containing nlohmann/json.hpp")
+
 find_package(OpenGL REQUIRED)
 find_package(OpenCV REQUIRED)
 
@@ -22,6 +24,8 @@ if(UNIX)
 else()
     set( MY_LIBS opengl32 glew32 glfw3)
 endif()
+
+find_package(Catch2 REQUIRED)
 
 find_package(PythonInterp)
 
@@ -44,6 +48,7 @@ message(STATUS "Boost_LIBRARIES = ${Boost_LIBRARIES}")
 include_directories(
         "${Boost_INCLUDE_DIR}"
         "${PYTHON_INCLUDE_DIRS}"
+        "${JSON_INCLUDE_PATH}"
 )
 
 link_libraries(
