@@ -11,6 +11,7 @@ namespace py = boost::python;
 namespace np = boost::python::numpy;
 
 
+/*
 void (ShowContext::*load1)(std::string)         = &ShowContext::load;
 BOOST_PYTHON_MODULE(pyvideo)
 {
@@ -27,3 +28,5 @@ BOOST_PYTHON_MODULE(pyvideo)
             .def("load",load1);
 
 }
+
+*/

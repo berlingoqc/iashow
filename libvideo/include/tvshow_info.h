@@ -42,13 +42,13 @@ namespace lv {
 
     };
 
-    void to_json(json& j, const CharacterInfo& c) {
+    inline void to_json(json& j, const CharacterInfo& c) {
         j["id"] = c.id;
         j["name"] = c.name;
         j["shortcut"] = c.shortcut;
     }
 
-    void from_json(const json& j, CharacterInfo& c) {
+    inline void from_json(const json& j, CharacterInfo& c) {
         j.at("id").get_to(c.id);
         j.at("shortcut").get_to(c.id);
         std::string name = "";
@@ -63,12 +63,12 @@ namespace lv {
 
     };
 
-    void to_json(json &j, const ShowInformation& s){
+    inline void to_json(json &j, const ShowInformation& s){
         j["show_name"] = s.show_name;
         j["list_character"] = s.list_character;
     }
 
-    void from_json(const json &j,ShowInformation& s) {
+    inline void from_json(const json &j,ShowInformation& s) {
         std::string name = "";
         j.at("show_name").get_to(name);
         s.show_name = strdup(name.c_str());
@@ -87,14 +87,14 @@ namespace lv {
 
     };
 
-    void to_json(json &j, const DSImageSettings &s) {
+    inline void to_json(json &j, const DSImageSettings &s) {
         j["img_format"] = s.img_format;
         j["name_format"] = s.name_format;
         j["image_size"] = {{"height", s.img_size.height},
                            {"width",  s.img_size.width}};
     }
 
-    void from_json(const json &j, DSImageSettings &s) {
+    inline void from_json(const json &j, DSImageSettings &s) {
         j.at("img_format").get_to(s.img_format);
         j.at("name_format").get_to(s.name_format);
         j.at("image_size").at("height").get_to(s.img_size.height);
@@ -129,14 +129,14 @@ namespace lv {
     };
 
 
-    void to_json(json &j, const ShowContext &c) {
+    inline void to_json(json &j, const ShowContext &c) {
         j["information"] = c.information;
         j["settings"] = c.settings;
         j["root_folder"] = c.root_folder;
         j["video_source_folder"] = c.video_source_folder;
     }
 
-    void from_json(const json &j, ShowContext &c) {
+    inline void from_json(const json &j, ShowContext &c) {
         j.at("information").get_to(c.information);
         j.at("settings").get_to(c.settings);
         std::string root, video = "";
@@ -148,7 +148,7 @@ namespace lv {
 }
 
 
-void SaveShowContext(const lv::ShowContext& c) {
+inline void SaveShowContext(const lv::ShowContext& c) {
     fs::path p = fs::path(c.root_folder);
     p = p / "config.json";
     json j = c;
@@ -161,7 +161,7 @@ void SaveShowContext(const lv::ShowContext& c) {
     file.close();
 }
 
-void LoadShowContext(const std::string& path, lv::ShowContext& ctx) {
+inline void LoadShowContext(const std::string& path, lv::ShowContext& ctx) {
     fs::path p = fs::path(path);
     p = p / "config.json";
     std::ifstream file(p.string());

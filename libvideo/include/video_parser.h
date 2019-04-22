@@ -34,12 +34,12 @@ protected:
     int current_frame;
 
 public:
-    VideoTraveler() {}
 
     virtual void openNew(std::string video_file) = 0;
-    virtual void nextFrame() = 0;    irtual void nextFrame(int count);
-    virtual void goToFrame(int count);
-    virtual cv::Mat& getFrame();
+    virtual void nextFrame() = 0;
+    virtual void nextFrame(int count) = 0;
+    virtual void goToFrame(int count) = 0;
+    virtual cv::Mat& getFrame() = 0;
 
     int getAtFrame() {
         return this->current_frame;
