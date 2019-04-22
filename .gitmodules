@@ -1,0 +1,3 @@
+[submodule "bsl"]
+	path = bsl
+	url = https://github.com/berlingoqc/bsl
